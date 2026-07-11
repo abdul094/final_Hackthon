@@ -1,0 +1,36 @@
+{
+  "version": "54.0.0",
+  "files": {
+    "02b51ab524e7bcf8f477de3e71e5f9a72e448301b26ba62e9e75a14f9c55a093": {
+      "displayName": "VpcStack/Custom::VpcRestrictDefaultSGCustomResourceProvider Code",
+      "source": {
+        "path": "asset.02b51ab524e7bcf8f477de3e71e5f9a72e448301b26ba62e9e75a14f9c55a093",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "944508510066-us-east-1-47b81de2": {
+          "bucketName": "cdk-hnb659fds-assets-944508510066-us-east-1",
+          "objectKey": "02b51ab524e7bcf8f477de3e71e5f9a72e448301b26ba62e9e75a14f9c55a093.zip",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::944508510066:role/cdk-hnb659fds-file-publishing-role-944508510066-us-east-1"
+        }
+      }
+    },
+    "dd1fa69b1bedb6bbe1606933d5e1c9ff55d19097ca04c262bb60fe38299f26fb": {
+      "displayName": "VpcStack Template",
+      "source": {
+        "path": "VpcStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "944508510066-us-east-1-914eea73": {
+          "bucketName": "cdk-hnb659fds-assets-944508510066-us-east-1",
+          "objectKey": "dd1fa69b1bedb6bbe1606933d5e1c9ff55d19097ca04c262bb60fe38299f26fb.json",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::944508510066:role/cdk-hnb659fds-file-publishing-role-944508510066-us-east-1"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

@@ -1,0 +1,462 @@
+{
+ "Resources": {
+  "PostgresDbSecretF3B217D2": {
+   "Type": "AWS::SecretsManager::Secret",
+   "Properties": {
+    "GenerateSecretString": {
+     "ExcludeCharacters": "\"@/\\",
+     "GenerateStringKey": "password",
+     "PasswordLength": 16,
+     "SecretStringTemplate": "{\"username\": \"iotadmin\"}"
+    },
+    "Name": "iot-postgres-credentials"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/PostgresDbSecret/Resource"
+   }
+  },
+  "PostgresSecurityGroupEA9E32B6": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Security group for PostgreSQL EC2 instance",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": {
+       "Fn::GetStackOutput": {
+        "StackName": "VpcStack",
+        "Region": "us-east-1",
+        "OutputName": "PublishOutputFnGetAttIotVpc88BA8F60CidrBlock1B5CE95B"
+       }
+      },
+      "Description": "PostgreSQL access within VPC",
+      "FromPort": 5432,
+      "IpProtocol": "tcp",
+      "ToPort": 5432
+     }
+    ],
+    "VpcId": {
+     "Fn::GetStackOutput": {
+      "StackName": "VpcStack",
+      "Region": "us-east-1",
+      "OutputName": "PublishOutputRefIotVpc88BA8F604E0610AD"
+     }
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/PostgresSecurityGroup/Resource"
+   }
+  },
+  "PostgresEc2RoleE1A418C1": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AmazonSSMManagedInstanceCore"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/PostgresEc2Role/Resource"
+   }
+  },
+  "PostgresEc2RoleDefaultPolicyCDE3DE39": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Ref": "PostgresDbSecretF3B217D2"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "PostgresEc2RoleDefaultPolicyCDE3DE39",
+    "Roles": [
+     {
+      "Ref": "PostgresEc2RoleE1A418C1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/PostgresEc2Role/DefaultPolicy/Resource"
+   }
+  },
+  "PostgresInstanceInstanceProfileB81C66FB": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "PostgresEc2RoleE1A418C1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/PostgresInstance/InstanceProfile"
+   }
+  },
+  "PostgresInstance19CDD68A": {
+   "Type": "AWS::EC2::Instance",
+   "Properties": {
+    "AvailabilityZone": "us-east-1a",
+    "IamInstanceProfile": {
+     "Ref": "PostgresInstanceInstanceProfileB81C66FB"
+    },
+    "ImageId": {
+     "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter"
+    },
+    "InstanceType": "t3.micro",
+    "SecurityGroupIds": [
+     {
+      "Fn::GetAtt": [
+       "PostgresSecurityGroupEA9E32B6",
+       "GroupId"
+      ]
+     }
+    ],
+    "SubnetId": {
+     "Fn::GetStackOutput": {
+      "StackName": "VpcStack",
+      "Region": "us-east-1",
+      "OutputName": "PublishOutputRefIotVpcPrivateSubnet1SubnetFD4F318402CCD0CF"
+     }
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "Ec2PostgresStack/PostgresInstance"
+     }
+    ],
+    "UserData": {
+     "Fn::Base64": "#!/bin/bash\nyum update -y\namazon-linux-extras install postgresql14 -y || dnf install -y postgresql15 postgresql15-server\npostgresql-setup --initdb || /usr/bin/postgresql-setup --initdb\nsystemctl enable postgresql\nsystemctl start postgresql\necho \"wal_level = logical\" >> /var/lib/pgsql/data/postgresql.conf\necho \"host all all 0.0.0.0/0 md5\" >> /var/lib/pgsql/data/pg_hba.conf\nsystemctl restart postgresql"
+    }
+   },
+   "DependsOn": [
+    "PostgresEc2RoleDefaultPolicyCDE3DE39",
+    "PostgresEc2RoleE1A418C1"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/PostgresInstance/Resource"
+   }
+  },
+  "BastionHostInstanceSecurityGroupE75D4274": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Ec2PostgresStack/BastionHost/Resource/InstanceSecurityGroup",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "BastionHost"
+     }
+    ],
+    "VpcId": {
+     "Fn::GetStackOutput": {
+      "StackName": "VpcStack",
+      "Region": "us-east-1",
+      "OutputName": "PublishOutputRefIotVpc88BA8F604E0610AD"
+     }
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/BastionHost/Resource/InstanceSecurityGroup/Resource"
+   }
+  },
+  "BastionHostInstanceRoleDD3FA5F1": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "BastionHost"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/BastionHost/Resource/InstanceRole/Resource"
+   }
+  },
+  "BastionHostInstanceRoleDefaultPolicy17347525": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "ec2messages:*",
+        "ssm:UpdateInstanceInformation",
+        "ssmmessages:*"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BastionHostInstanceRoleDefaultPolicy17347525",
+    "Roles": [
+     {
+      "Ref": "BastionHostInstanceRoleDD3FA5F1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/BastionHost/Resource/InstanceRole/DefaultPolicy/Resource"
+   }
+  },
+  "BastionHostInstanceProfile770FCA07": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "BastionHostInstanceRoleDD3FA5F1"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/BastionHost/Resource/InstanceProfile"
+   }
+  },
+  "BastionHost30F9ED05": {
+   "Type": "AWS::EC2::Instance",
+   "Properties": {
+    "AvailabilityZone": "us-east-1a",
+    "IamInstanceProfile": {
+     "Ref": "BastionHostInstanceProfile770FCA07"
+    },
+    "ImageId": {
+     "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter"
+    },
+    "InstanceType": "t3.micro",
+    "SecurityGroupIds": [
+     {
+      "Fn::GetAtt": [
+       "BastionHostInstanceSecurityGroupE75D4274",
+       "GroupId"
+      ]
+     }
+    ],
+    "SubnetId": {
+     "Fn::GetStackOutput": {
+      "StackName": "VpcStack",
+      "Region": "us-east-1",
+      "OutputName": "PublishOutputRefIotVpcPublicSubnet1SubnetE76936E8A3FCEB48"
+     }
+    },
+    "Tags": [
+     {
+      "Key": "Name",
+      "Value": "BastionHost"
+     }
+    ],
+    "UserData": {
+     "Fn::Base64": "#!/bin/bash"
+    }
+   },
+   "DependsOn": [
+    "BastionHostInstanceRoleDefaultPolicy17347525",
+    "BastionHostInstanceRoleDD3FA5F1"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/BastionHost/Resource/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/7VTy27bMBD8lvBYKGrjADn45iRAKzRoDDunGkaxpjY2G4pUuEs7gqB/LyhKltI0aVG0J1Gzj5nhLifp5OIs/XACBzqV+cOpVpu0XjLIhwQO9K0mlA6ZCjCwRZfWy/Z/VYstGnTAGIElO2W2YloLfJLa53i1AweS0ZGYinciGfLbzM9YdXgJRAfr8hs0W951II2a3mFRamBsQ00f+wJFh6yTq3sTVTQJykmr0TvF1Udnfbmqxb6UXV/Q2h5mWt963lhvcjFl5zEROZJ0qmRlTUdTC8jzzGwdEi28RjFd1UKCyYxWBiMSa6U1BmUo7a16ox49Znnfqkla+J1Yh76/V9PjWbm/GGJjr4O9JDPEYCSuaqG6411VYkdRgNwpg1kB2x4a+J3VOFz40LO3QeiugWGoW/qNQaYwZmqPHdPcqX2YUPOTvz0oDRulFVdfrXmLq5d+HGvy525eVeU3WsmwMhtt5cM17pVEOnZXPDreluMBOnz0ymFW5LSfiOk9aMLhPq7AE9ICSw0SCzQ8Xpk7u7Aa51YrWYWdadZxaP2YkkugQPXJEt8o45+e7ecvPEdLS9Rxx1512aybREGR1oF/VQsg8gXml1WoKJ0yUpWgZ1Jab3rnMScUzORo90V87XnrQoUrW9XPsGrmutz10fa8p3jmPUSZQe7iuznG+sfwdvCvLfw3Ve0sA1sS8YAeC+LsX/R5Cef5koHb3aFe0r9q1CqM4sZ7N3f2XmlsmjYMDgpkdMkCyXonMaC3nkvPTTKveGfN+/P07Dw9O/lOSp06b1gVmC7i9wcPgFN7NQYAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "Ec2PostgresStack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Parameters": {
+  "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter": {
+   "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+   "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Outputs": {
+  "BastionHostBastionHostIdC743CBD6": {
+   "Description": "Instance ID of the bastion host. Use this to connect via SSM Session Manager",
+   "Value": {
+    "Ref": "BastionHost30F9ED05"
+   }
+  },
+  "PostgresInstanceId": {
+   "Value": {
+    "Ref": "PostgresInstance19CDD68A"
+   }
+  },
+  "BastionInstanceId": {
+   "Value": {
+    "Ref": "BastionHost30F9ED05"
+   }
+  },
+  "DbSecretName": {
+   "Value": {
+    "Fn::Join": [
+     "-",
+     [
+      {
+       "Fn::Select": [
+        0,
+        {
+         "Fn::Split": [
+          "-",
+          {
+           "Fn::Select": [
+            6,
+            {
+             "Fn::Split": [
+              ":",
+              {
+               "Ref": "PostgresDbSecretF3B217D2"
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "Fn::Select": [
+        1,
+        {
+         "Fn::Split": [
+          "-",
+          {
+           "Fn::Select": [
+            6,
+            {
+             "Fn::Split": [
+              ":",
+              {
+               "Ref": "PostgresDbSecretF3B217D2"
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "Fn::Select": [
+        2,
+        {
+         "Fn::Split": [
+          "-",
+          {
+           "Fn::Select": [
+            6,
+            {
+             "Fn::Split": [
+              ":",
+              {
+               "Ref": "PostgresDbSecretF3B217D2"
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

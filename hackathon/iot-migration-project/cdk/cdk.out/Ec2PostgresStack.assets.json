@@ -1,0 +1,21 @@
+{
+  "version": "54.0.0",
+  "files": {
+    "a0a348afd637b47029aff8a06bd7775727b6d5c96ceacf11ffdad6dad55c8d51": {
+      "displayName": "Ec2PostgresStack Template",
+      "source": {
+        "path": "Ec2PostgresStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "944508510066-us-east-1-0fa444de": {
+          "bucketName": "cdk-hnb659fds-assets-944508510066-us-east-1",
+          "objectKey": "a0a348afd637b47029aff8a06bd7775727b6d5c96ceacf11ffdad6dad55c8d51.json",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::944508510066:role/cdk-hnb659fds-file-publishing-role-944508510066-us-east-1"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

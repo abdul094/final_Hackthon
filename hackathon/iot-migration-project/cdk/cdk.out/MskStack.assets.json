@@ -1,0 +1,21 @@
+{
+  "version": "54.0.0",
+  "files": {
+    "e032b4744e0521e8a124ecca8c55877a934219119db8b056d476cd10f550a7e0": {
+      "displayName": "MskStack Template",
+      "source": {
+        "path": "MskStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "944508510066-us-east-1-60af815b": {
+          "bucketName": "cdk-hnb659fds-assets-944508510066-us-east-1",
+          "objectKey": "e032b4744e0521e8a124ecca8c55877a934219119db8b056d476cd10f550a7e0.json",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::944508510066:role/cdk-hnb659fds-file-publishing-role-944508510066-us-east-1"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}
